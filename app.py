@@ -1,6 +1,6 @@
 import random
 import streamlit as st
-from logic_utils import parse_guess, check_guess
+from logic_utils import parse_guess, check_guess_verbose
 
 # Range helper
 def get_range_for_difficulty(difficulty: str):
@@ -9,27 +9,24 @@ def get_range_for_difficulty(difficulty: str):
     if difficulty == "Normal":
         return 1, 100
     if difficulty == "Hard":
-        return 1, 50
+        return 1, 150
     return 1, 100
 
 
 def update_score(current_score: int, outcome: str, attempt_number: int):
-    # FIXME: Logic breaks here - scoring rules are non-intuitive and depend on
-    # attempt parity in a surprising way (e.g. "Too High" rewards or penalizes
-    # based on attempt_number % 2). 
+    # FIX: Replaced buggy parity-based logic with sensible scoring rules
     if outcome == "Win":
-        points = 100 - 10 * (attempt_number + 1)
-        if points < 10:
-            points = 10
+        # Reward winning sooner: 100 - (10 * attempts)
+        points = max(10, 100 - 10 * attempt_number)
         return current_score + points
 
     if outcome == "Too High":
-        if attempt_number % 2 == 0:
-            return current_score + 5
-        return current_score - 5
+        # Correct direction guessed (narrowing range)
+        return current_score + 3
 
     if outcome == "Too Low":
-        return current_score - 5
+        # Correct direction guessed (narrowing range)
+        return current_score + 3
 
     return current_score
 
@@ -58,8 +55,14 @@ low, high = get_range_for_difficulty(difficulty)
 st.sidebar.caption(f"Range: {low} to {high}")
 st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 
-if "secret" not in st.session_state:
+# Track difficulty to detect changes
+if "current_difficulty" not in st.session_state:
+    st.session_state.current_difficulty = difficulty
+
+# Regenerate secret if difficulty changed or if not initialized
+if "secret" not in st.session_state or st.session_state.current_difficulty != difficulty:
     st.session_state.secret = random.randint(low, high)
+    st.session_state.current_difficulty = difficulty
 
 if "attempts" not in st.session_state:
     # initialize attempts to 0 so first submit becomes attempt 1
@@ -131,7 +134,7 @@ if submit:
         # secret is always stored as an int; pass as numeric for correct ordering
         secret = st.session_state.secret
 
-        outcome, message = check_guess(guess_int, secret)
+        outcome, message = check_guess_verbose(guess_int, secret)
 
         if show_hint:
             st.warning(message)
@@ -147,7 +150,6 @@ if submit:
             st.session_state.status = "won"
             st.success(
                 f"You won! The secret was {st.session_state.secret}. "
-                f"Final score: {st.session_state.score}"
             )
         else:
             if st.session_state.attempts >= attempt_limit:
