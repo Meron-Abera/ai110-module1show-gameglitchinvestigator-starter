@@ -30,6 +30,24 @@ def update_score(current_score: int, outcome: str, attempt_number: int):
 
     return current_score
 
+
+def reset_state_for_difficulty(state: dict, difficulty: str, low: int, high: int):
+    """Reset mutable game state for a new difficulty.
+
+    This accepts a plain mapping so it can be called with `st.session_state`
+    from the Streamlit app or a plain dict from unit tests.
+    """
+   
+    # initialize attempts to 0 so first submit becomes attempt 1
+    state["attempts"] = 0
+    # set a new secret in range
+    state["secret"] = random.randint(low, high)
+    # reset status, history, score and difficulty marker
+    state["status"] = "playing"
+    state["history"] = []
+    state["score"] = 0
+    state["current_difficulty"] = difficulty
+
 st.set_page_config(page_title="Glitchy Guesser", page_icon="🎮")
 
 st.title("🎮 Game Glitch Investigator")
@@ -59,10 +77,10 @@ st.sidebar.caption(f"Attempts allowed: {attempt_limit}")
 if "current_difficulty" not in st.session_state:
     st.session_state.current_difficulty = difficulty
 
-# Regenerate secret if difficulty changed or if not initialized
+# Regenerate secret and reset state if difficulty changed or if not initialized
 if "secret" not in st.session_state or st.session_state.current_difficulty != difficulty:
-    st.session_state.secret = random.randint(low, high)
-    st.session_state.current_difficulty = difficulty
+    # Use helper so behavior is consistent and testable
+    reset_state_for_difficulty(st.session_state, difficulty, low, high)
 
 if "attempts" not in st.session_state:
     # initialize attempts to 0 so first submit becomes attempt 1
@@ -106,10 +124,7 @@ with col3:
 
 if new_game:
     # start a new game using the currently selected range and reset state
-    st.session_state.attempts = 0
-    st.session_state.secret = random.randint(low, high)
-    st.session_state.status = "playing"
-    st.session_state.history = []
+    reset_state_for_difficulty(st.session_state, difficulty, low, high)
     st.success("New game started.")
     st.rerun()
 

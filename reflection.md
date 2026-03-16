@@ -47,7 +47,7 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 - Did AI help you design or understand any tests? How?
 - How did you decide whether a bug was really fixed?
 
-  - I considered a bug fixed when a focused unit test that reproduces the failing behavior passes and when manual inspection of the code confirms there are no remaining early-exit or fallback paths that could reintroduce the problem. In practice that meant adding a test that reproduced the failure and then iterating on the implementation until the test and the full test suite passed.In addition, I also tested the game by running it on local host and the issues were fixed.
+  - I considered a bug fixed when a focused unit test that reproduces the failing behavior passes and when manual inspection of the code confirms there are no remaining fallback paths that could reintroduce the problem. 
 
 - Describe at least one test you ran (manual or using pytest)  
   and what it showed you about your code.
@@ -57,12 +57,20 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
 - Did AI help you design or understand any tests? How?
 
   - Yes. The AI suggested adding focused unit tests around parsing and comparison edge cases (strings, float-like strings, and out-of-range inputs), which I implemented. Those tests helped pinpoint the exact mismatch between intended behavior and actual behavior and validated the fix after code changes.
+  
+Additional implementation note
+
+  - I added a small, testable helper `reset_state_for_difficulty(state, difficulty, low, high)` in `app.py` to centralize resetting `attempts`, `secret`, `status`, `history`, and `score` when the difficulty changes or a new game starts. The helper is marked with a `#FIXME:` comment in the code so reviewers can quickly find the location to adjust behavior (for example, if we want to preserve score across difficulties). I wrote unit tests that call the helper directly to validate its behavior.
 
 ---
 
 ## 4. What did you learn about Streamlit and state?
 
 - How would you explain Streamlit "reruns" and session state to a friend who has never used Streamlit?
+
+Streamlit runs your script top-to-bottom every time the user interacts with the UI . That makes building reactive apps simple, but any ordinary local variables are recreated on each rerun. 
+
+---
 
 ---
 
@@ -72,3 +80,15 @@ Answer each question in 3 to 5 sentences. Be specific and honest about what actu
   - This could be a testing habit, a prompting strategy, or a way you used Git.
 - What is one thing you would do differently next time you work with AI on a coding task?
 - In one or two sentences, describe how this project changed the way you think about AI generated code.
+
+- Reusable habit or strategy
+
+  - Extract core logic out of UI code and write unit tests first for the smallest. Making `logic_utils.py` testable let me iterate quickly, write narrow tests for edge-cases, and trust automated checks before touching the UI.
+
+- One thing I'd do differently with AI
+
+  - I would treat AI suggestions as experiments: request small  edits, and immediately create one  unit tests or manual test that validate the intended behavior before accepting larger changes. 
+
+- How this changed my view of AI-generated code
+
+  - The project showed that AI can accelerate refactoring and test design, but its output must be verified by tests and code review — AI is a powerful assistant, not an authoritative source. With targeted tests and small iterative commits, AI becomes a reliable partner rather than a shortcut that hides bugs.
